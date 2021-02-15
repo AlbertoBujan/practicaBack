@@ -1,24 +1,43 @@
 "use strict";
 
-const database = require("../infrastructure/database");
+const fs = require("fs");
 
-async function createUser(email, passwordHash) {
-  const pool = await database.getPool();
-  const insertQuery = "INSERT INTO usuario (email, pass) VALUES(?, ?)";
-  const [created] = await pool.query(insertQuery, [email, passwordHash]);
+async function insertUserToJsonFile(email, passwordHash) {
+  let usersList = {
+    users: [],
+  };
 
-  return created.insertId;
+  fs.readFile("usersList.json", "utf8", function readFileCallback(err, data) {
+    if (err) {
+      console.log(err);
+    } else {
+      usersList = JSON.parse(data);
+      usersList.users.push({ email: email, password: passwordHash });
+      let json = JSON.stringify(usersList);
+      fs.writeFile("usersList.json", json, "utf8", function () {
+        console.log("Usuario escrito en archivo JSON");
+      });
+    }
+  });
 }
 
 async function findUserByEmail(email) {
-  const pool = await database.getPool();
-  const query = "SELECT * FROM usuario WHERE email = ?";
-  const [users] = await pool.query(query, email);
+  fs.readFile("usersList.json", function readFileCallback(err, data) {
+    if (err) {
+      console.log(err);
+    } else {
+      let usersList = JSON.parse(data);
 
-  return users[0];
+      let emails = usersList.users.map((user) => user.email);
+
+      let emailMatch = emails.find((element) => element === email);
+      // console.log(emailMatch);
+      return emailMatch;
+    }
+  });
 }
 
 module.exports = {
-  createUser,
+  insertUserToJsonFile,
   findUserByEmail,
 };

@@ -2,9 +2,11 @@
 
 const Joi = require("joi");
 const bcrypt = require("bcrypt");
+const fs = require("fs");
+const json = require("../../../usersList.json");
 
 const {
-  createUser,
+  insertUserToJsonFile,
   findUserByEmail,
 } = require("../../repositories/users-repositories");
 const createJsonError = require("../errors/create-json-errors");
@@ -19,8 +21,11 @@ async function registerUser(req, res) {
     await schema.validateAsync(req.body);
 
     const { email, pass } = req.body;
-    const existUser = await findUserByEmail(email);
-    if (existUser) {
+
+    let emails = json.users.map((user) => user.email);
+    let emailMatch = emails.find((element) => element === email);
+
+    if (emailMatch) {
       const error = new Error("Ya existe un usuario con ese email");
       error.status = 409;
       throw error;
@@ -28,7 +33,7 @@ async function registerUser(req, res) {
 
     const passwordHash = await bcrypt.hash(pass, 12);
 
-    await createUser(email, passwordHash);
+    await insertUserToJsonFile(email, passwordHash);
 
     res.status(201).send({ message: "Usuario creado" });
   } catch (err) {
